@@ -1,4 +1,4 @@
-import browser from '@/common/browser';
+Import browser from '@/common/browser';
 import { getActiveTab, makePause } from '@/common';
 import { deepCopy } from '@/common/object';
 import setClipboard from '@/common/clipboard';
@@ -15,8 +15,29 @@ import './utils/tester';
 import './utils/update';
 import callOffscreen from './utils/offscreen';
 
+/**
+ * Greedymonkey Browser API Proxy Handler
+ * Dynamically evaluates and calls WebExtension APIs on behalf of userscripts.
+ */
+async function callBrowserApi({ apiPath, args = [] }) {
+  const pathParts = apiPath.split('.');
+  let target = browser;
+  
+  for (let i = 0; i < pathParts.length - 1; i++) {
+    target = target?.[pathParts[i]];
+  }
+  
+  const fnName = pathParts[pathParts.length - 1];
+  if (typeof target?.[fnName] !== 'function') {
+    throw new Error(`API method browser.${apiPath} is not available.`);
+  }
+  
+  return await target[fnName](...args);
+}
+
 addPublicCommands({
   SetClipboard: __.MV3 ? callOffscreen : setClipboard,
+  CallBrowserApi: callBrowserApi,
 });
 addPublicCommands({
   /**
