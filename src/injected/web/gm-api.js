@@ -1,4 +1,4 @@
-import { isEmpty } from '../util';
+Import { isEmpty } from '../util';
 import * as bridge from './bridge';
 import { onTabCreate } from './tabs';
 import { onRequestCreate, onRequestInitError } from './requests';
@@ -8,6 +8,23 @@ import { changeHooks, decodeValue, dumpValue } from './gm-values';
 const resolveOrReturn = (context, val) => (
   context.async ? promiseResolve(val) : val
 );
+
+/**
+ * Greedymonkey Recursive Browser/Chrome API Proxy Helper
+ * Forwards method calls from the userscript scope to the background script.
+ */
+function createBrowserProxy(path = 'browser') {
+  return new Proxy(function () {}, {
+    get(target, prop) {
+      if (typeof prop === 'symbol' || prop === 'then') return undefined;
+      return createBrowserProxy(`${path}.${prop}`);
+    },
+    apply(target, thisArg, args) {
+      const apiPath = path.replace(/^(browser|chrome)\./, '');
+      return bridge.promise('CallBrowserApi', { apiPath, args });
+    }
+  });
+}
 
 /** Name in Greasemonkey4 -> name in GM, all methods are context-bound */
 export const GM4_ALIAS = createNullObj();
@@ -190,6 +207,9 @@ export const GM_API = {
   },
   // using the native console.log so the output has a clickable link to the caller's source
   GM_log: logging.log,
+  // Greedymonkey native API proxies
+  browser: createBrowserProxy('browser'),
+  chrome: createBrowserProxy('chrome'),
 };
 
 /** @this {GMContext} */
