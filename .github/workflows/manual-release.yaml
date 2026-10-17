@@ -43,11 +43,14 @@ jobs:
       - name: Create GitHub Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.GIT_DESCRIBE }}
+          name: Greedymonkey ${{ env.GIT_DESCRIBE }}
           files: |
             dist/*
             dist-mv3/*
           draft: false
           prerelease: false
           generate_release_notes: true
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
