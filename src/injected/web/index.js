@@ -1,5 +1,5 @@
 import * as bridge from './bridge';
-import { GM_API_CTX } from './gm-api';
+import { GM_API, GM_API_CTX } from './gm-api';
 import { makeGmApiWrapper } from './gm-api-wrapper';
 import './gm-values';
 import './notifications';
@@ -42,7 +42,11 @@ VMInitInjection = (invokeHost, console) => {
   } else {
     bridge.setMode(CONTENT);
     bridge.setPost((cmd, data, node) => invokeHost({ cmd, data, node }, CONTENT));
-    global.browser = global.chrome = undefined;
+    
+    // Greedymonkey: Expose proxy APIs rather than strictly purging global browser/chrome
+    global.browser = GM_API.browser;
+    global.chrome = GM_API.chrome;
+    
     logging = console; // eslint-disable-line no-global-assign
     return (cmd, data, realm, node) => {
       if (__.DEBUG) console.info('[bridge.guest.content] received', { cmd, data, node });
