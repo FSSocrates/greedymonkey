@@ -1,0 +1,71 @@
+name: Manual Timestamp Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release Timestamped Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Timestamp Version & Update Manifest
+        run: |
+          # Generate YY.M.D.H.M.S format (e.g. 26.10.18.5.31.00)
+          VERSION=$(date -u +"%y.%m.%d.%H.%M.%S")
+          echo "Generated version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          # Update version in package.json using node
+          node -e '
+            import fs from "fs";
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
+          '
+
+          # Run gulp manifest to sync version across extension manifests
+          npx gulp manifest
+
+      - name: Build MV2 & MV3
+        run: |
+          pnpm build
+          pnpm build:mv3
+
+      - name: Create Zip Archives
+        run: |
+          cd dist && zip -r ../greedymonkey-mv2-${{ env.VERSION }}.zip . && cd ..
+          cd dist-mv3 && zip -r ../greedymonkey-mv3-${{ env.VERSION }}.zip . && cd ..
+
+      - name: Create GitHub Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Greedymonkey v${{ env.VERSION }}
+          files: |
+            greedymonkey-mv2-${{ env.VERSION }}.zip
+            greedymonkey-mv3-${{ env.VERSION }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
