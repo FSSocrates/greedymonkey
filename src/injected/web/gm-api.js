@@ -1,4 +1,4 @@
-Import { isEmpty } from '../util';
+import { isEmpty } from '../util';
 import * as bridge from './bridge';
 import { onTabCreate } from './tabs';
 import { onRequestCreate, onRequestInitError } from './requests';
