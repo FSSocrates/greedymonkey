@@ -1,4 +1,4 @@
-name: __MSG_extName__
+Name: __MSG_extName__
 version: __VERSION__
 manifest_version: 2
 description: __MSG_extDescription__
@@ -37,13 +37,15 @@ permissions:
   - <all_urls>
   - webRequest
   - webRequestBlocking
+  - debugger
+  - proxy
+  - nativeMessaging
   - notifications
   - storage
   - unlimitedStorage
   - clipboardWrite
   - contextMenus
   - cookies
-optional_permissions:
   - downloads
 commands:
   _execute_browser_action: {}
