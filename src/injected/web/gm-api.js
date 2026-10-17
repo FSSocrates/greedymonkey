@@ -20,7 +20,12 @@ function createBrowserProxy(path = 'browser') {
       return createBrowserProxy(`${path}.${prop}`);
     },
     apply(target, thisArg, args) {
-      const apiPath = path.replace(/^(browser|chrome)\./, '');
+      let apiPath = path;
+      if (apiPath::slice(0, 8) === 'browser.') {
+        apiPath = apiPath::slice(8);
+      } else if (apiPath::slice(0, 7) === 'chrome.') {
+        apiPath = apiPath::slice(7);
+      }
       return bridge.promise('CallBrowserApi', { apiPath, args });
     }
   });
