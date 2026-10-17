@@ -1,65 +1,76 @@
-# Violentmonkey
+# Greedymonkey
 
-[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jinjaccalgkegednnccohejagnlnfdag.svg)](https://chrome.google.com/webstore/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag)
-[![Firefox Add-ons](https://img.shields.io/amo/v/violentmonkey.svg)](https://addons.mozilla.org/firefox/addon/violentmonkey)
-[![Microsoft Edge Add-on](https://img.shields.io/badge/dynamic/json?label=microsoft%20edge%20add-on&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Feeagobfjdenkkddmbclomhiblgggliao)](https://microsoftedge.microsoft.com/addons/detail/eeagobfjdenkkddmbclomhiblgggliao)
+A [Violentmonkey](https://github.com/violentmonkey/violentmonkey) fork that removes the `GM_*` ceiling. `@grant` proxies to the real WebExtension API — no companion extension, no stub, no limit.
 
-Violentmonkey provides userscripts support for browsers.
-It works on browsers with [WebExtensions](https://developer.mozilla.org/en-US/Add-ons/WebExtensions) support.
+## Why
 
-More details can be found [here](https://violentmonkey.github.io/).
+Standard userscript managers (Tampermonkey, Violentmonkey, Greasemonkey) cap scripts at `GM_*` helpers. If a script needs `browser.webRequest` or `browser.debugger`, you have to install a separate extension and coordinate between them.
 
-Join our Discord server:
+Greedymonkey eliminates that split. The manager *is* the extension. It ships with all permissions and `<all_urls>` host access. When you write `@grant browser.webRequest`, the script gets the actual API.
 
-[![Discord](https://img.shields.io/discord/995346102003965952?label=discord&logo=discord&logoColor=white&style=for-the-badge)](https://discord.gg/XHtUNSm6Xc)
+## What changed from Violentmonkey
 
-## Automated Builds for Testers
+| | Violentmonkey | Greedymonkey |
+|---|---|---|
+| `@grant GM_setValue` | ✅ | ✅ |
+| `@grant browser.tabs` | ❌ (stub or ignored) | ✅ (real API) |
+| `@grant browser.webRequest` | ❌ | ✅ |
+| `@grant browser.debugger` | ❌ | ✅ |
+| `@grant browser.proxy` | ❌ | ✅ |
+| `@grant browser.nativeMessaging` | ❌ | ✅ |
+| Permission prompts | n/a | None — all granted at install |
 
-* [CI workflows](https://github.com/violentmonkey/violentmonkey/actions/workflows/ci.yml) (only for signed-in github.com users)
-* [nightly.link latest](https://nightly.link/violentmonkey/violentmonkey/workflows/ci/master?preview) (to download any other build replace `github.com` with `nightly.link` in the artifact URL)
+Everything else — the dashboard, editor, import/export, sync, `@require`, `@resource`, `@connect`, auto-update, script ordering, sourcing from Greasy Fork / GitHub / URL / paste / file — is inherited from Violentmonkey unchanged.
 
-A test build is generated automatically for changes between beta releases. It can be installed as an unpacked extension in Chrome and Chromium-based browsers or as a temporary extension in Firefox. It's likely to have bugs so do an export in Violentmonkey settings first. This zip is available only if you're logged-in on GitHub site. Open an entry in the [CI workflows](https://github.com/violentmonkey/violentmonkey/actions/workflows/ci.yml) table and click the `Violentmonkey-...` link at the bottom to download it.
+## Usage
 
-## Workflows
+```js
+// ==UserScript==
+// @name         Intercept and log requests
+// @match        *://*.example.com/*
+// @grant        browser.webRequest
+// @grant        browser.storage
+// @grant        GM_setValue
+// ==/UserScript==
 
-### Development
+browser.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    console.log('Intercepted:', details.url);
+    // Modify, block, log — your call.
+  },
+  { urls: ['*://*.example.com/*'] }
+);
 
-Install [Node.js](https://nodejs.org/) and PNPM.
-The version of Node.js should match `"node"` key in `package.json`.
-
-``` sh
-# Install dependencies
-$ pnpm ci
-
-# Watch and compile
-$ pnpm dev
+browser.storage.local.set({ lastRun: Date.now() });
 ```
 
-Then load the extension from 'dist/'.
+That's it. The `@grant` line is the only declaration you need. No manifest, no companion extension, no bridge.
 
-### Test + lint
+## Install
 
-``` sh
-$ pnpm run ci
+Build from source and load as an unpacked extension:
+
+```bash
+pnpm install
+pnpm run build
+# Load dist/ via about:debugging (Firefox) or chrome://extensions (Chrome/Edge)
 ```
 
-### Build
+> **Note:** This extension requests all WebExtension permissions and `<all_urls>`. Any script you install can use any API it declares via `@grant`. Use a dedicated profile if you're running untrusted scripts.
 
-To release a new version, we must build the assets and upload them to web stores.
+## Scope
 
-``` sh
-# Build for normal releases
-$ pnpm build
+This is a **personal tool**. It is not designed for:
 
-# Build for self-hosted release that has an update_url
-$ pnpm build:selfHosted
-```
+- Public distribution (AMO, Chrome Web Store)
+- Replacing a full extension for production use
 
-### Release
+The trust model is: **you choose what to install, you read the code, you own the machine.**
 
-See [RELEASE](RELEASE.md) for the release flow.
+## License
 
-## Related Projects
+MIT (inherited from Violentmonkey).
 
-- [Violentmonkey for Opera Presto](https://github.com/violentmonkey/violentmonkey-oex)
-- [Violentmonkey for Maxthon](https://github.com/violentmonkey/violentmonkey-mx)
+## Credits
+
+Forked from [Violentmonkey](https://github.com/violentmonkey/violentmonkey) by <a href="https://github.com/daijiarui">daijiarui</a> and contributors.   
