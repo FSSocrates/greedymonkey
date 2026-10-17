@@ -1,18 +1,13 @@
-Name: CI
+name: CI
 
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [master, main]
     tags-ignore:
-      - 'v*' # version-tagged commits are releases which have their own workflow
-    paths-ignore:
-      - '.github/**' # this ci.yml is also excluded so you need to re-run it explicitly if necessary
-      - src/types.d.ts
-      - LICENSE
-      - README.md
+      - 'v*'
   pull_request:
-    branches: [master]
+    branches: [master, main]
 
 jobs:
   ci:
@@ -22,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 100 # for revision index in version and the `has-changed-path` action
+          fetch-depth: 100
           fetch-tags: true
 
       - uses: pnpm/action-setup@v6
