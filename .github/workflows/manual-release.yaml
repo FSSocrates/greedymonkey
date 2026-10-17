@@ -1,4 +1,4 @@
-name: Manual Timestamp Release
+name: Manual Release
 
 on:
   workflow_dispatch:
@@ -8,14 +8,15 @@ permissions:
 
 jobs:
   release:
-    name: Build & Release Timestamped Version
+    name: Build & Release
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 100
+          fetch-tags: true
 
       - uses: pnpm/action-setup@v6
 
@@ -26,42 +27,25 @@ jobs:
       - name: Install dependencies
         run: pnpm ci
 
-      - name: Generate Timestamp Version & Update Manifest
-        run: |
-          # Generate YY.M.D.H.M.S format (e.g. 26.10.18.5.36.00)
-          VERSION=$(date -u +"%y.%m.%d.%H.%M.%S")
-          echo "Generated version: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-          # Update version in package.json using node
-          node -e '
-            import fs from "fs";
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
-          '
-
-          # Run gulp manifest to sync version across extension manifests
-          npx gulp manifest
-
       - name: Build MV2 & MV3
         run: |
-          pnpm build
+          pnpm exec run-p ci build
           pnpm build:mv3
+        env:
+          SYNC_DROPBOX_CLIENT_ID: ${{ secrets.SYNC_DROPBOX_CLIENT_ID }}
+          SYNC_GOOGLE_DESKTOP_ID: ${{ secrets.SYNC_GOOGLE_DESKTOP_ID }}
+          SYNC_GOOGLE_DESKTOP_SECRET: ${{ secrets.SYNC_GOOGLE_DESKTOP_SECRET }}
+          SYNC_ONEDRIVE_CLIENT_ID: ${{ secrets.SYNC_ONEDRIVE_CLIENT_ID }}
 
-      - name: Create Zip Archives
-        run: |
-          cd dist && zip -r ../greedymonkey-mv2-${{ env.VERSION }}.zip . && cd ..
-          cd dist-mv3 && zip -r ../greedymonkey-mv3-${{ env.VERSION }}.zip . && cd ..
+      - name: Get version and SHA
+        run: node scripts/action-helper.js release
 
       - name: Create GitHub Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.VERSION }}
-          name: Greedymonkey v${{ env.VERSION }}
           files: |
-            greedymonkey-mv2-${{ env.VERSION }}.zip
-            greedymonkey-mv3-${{ env.VERSION }}.zip
+            dist/*
+            dist-mv3/*
           draft: false
           prerelease: false
           generate_release_notes: true
