@@ -40,14 +40,18 @@ jobs:
       - name: Get version and SHA
         run: node scripts/action-helper.js release
 
+      - name: Package extension archives
+        run: |
+          mkdir -p dist-assets
+          cd dist && zip -r ../dist-assets/Greedymonkey-mv2-${{ env.GIT_DESCRIBE }}.zip . && cd ..
+          cd dist-mv3 && zip -r ../dist-assets/Greedymonkey-mv3-${{ env.GIT_DESCRIBE }}.zip . && cd ..
+
       - name: Create GitHub Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.GIT_DESCRIBE }}
           name: Greedymonkey ${{ env.GIT_DESCRIBE }}
-          files: |
-            dist/*
-            dist-mv3/*
+          files: dist-assets/*
           draft: false
           prerelease: false
           generate_release_notes: true
